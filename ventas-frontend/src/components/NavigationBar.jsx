@@ -35,7 +35,7 @@ function NavigationBar() {
             <Link to="/products" className="text-white hover:text-gray-400">Productos</Link>
           </li>
           <li>
-            <Link to="/orders" className="text-white hover:text-gray-400">Pedidos</Link>
+            <Link to="/Sales" className="text-white hover:text-gray-400">Pedidos</Link>
           </li>
 
           {/* Mostrar "Usuarios" solo si el usuario es admin */}

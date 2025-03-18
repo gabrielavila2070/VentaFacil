@@ -1,8 +1,7 @@
 package com.example.ventas.model;
 
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sun.istack.NotNull;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -11,12 +10,11 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Table(name = "clients")
+@Table(name = "client")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIdentityInfo(generator= ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class Client {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,6 +31,9 @@ public class Client {
     private String email;
 
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference(value = "client-sales")
+    @JsonIgnore
     private List<Sale> purchases;
+    public String getName() {
+        return firstName + " " + lastName;
+    }
 }

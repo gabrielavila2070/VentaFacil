@@ -1,17 +1,21 @@
 package com.example.ventas.service;
 
+import com.example.ventas.dto.AddProductsToSaleDTO;
+import com.example.ventas.dto.SaleRequestDTO;
+import com.example.ventas.dto.SaleUpdateRequestDTO;
 import com.example.ventas.model.Client;
 import com.example.ventas.model.Product;
 import com.example.ventas.model.Sale;
+import com.example.ventas.model.SaleProduct;
 import com.example.ventas.model.User;
 import com.example.ventas.repository.ClientRepository;
 import com.example.ventas.repository.ProductRepository;
+import com.example.ventas.repository.SaleProductRepository;
 import com.example.ventas.repository.SaleRepository;
 import com.example.ventas.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -26,6 +30,8 @@ public class SaleService {
     private UserRepository userRepository;
     @Autowired
     private ProductRepository productRepository;
+    @Autowired
+    private SaleProductRepository saleProductRepository;
 
     public List<Sale> getAllSale() {
         return saleRepository.findAll();
@@ -35,38 +41,93 @@ public class SaleService {
         return saleRepository.findById(id);
     }
 
-    public Sale saveSale(Sale sale) {
-        if (sale.getClient() == null || sale.getClient().getId() == null) {
-            throw new RuntimeException("El cliente no puede ser nulo.");
-        }
-
-        Client client = clientRepository.findById(sale.getClient().getId())
+    public Sale saveSale(SaleRequestDTO saleRequest) {
+        Client client = clientRepository.findById(saleRequest.getClientId())
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
-        if (sale.getPreventista() == null || sale.getPreventista().getId() == null) {
-            throw new RuntimeException("El preventista no puede ser nulo.");
-        }
-
-        User preventista = userRepository.findById(sale.getPreventista().getId())
+        User preventista = userRepository.findById(saleRequest.getPreventistaId())
                 .orElseThrow(() -> new RuntimeException("Preventista no encontrado"));
 
-        List<Product> products = sale.getProducts() == null ? new ArrayList<>() : sale.getProducts();
-        List<Product> validProducts = new ArrayList<>();
-
-        for (Product product : products) {
-            Product foundProduct = productRepository.findById(product.getId())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + product.getId()));
-            validProducts.add(foundProduct);
-        }
-
+        Sale sale = new Sale();
         sale.setClient(client);
         sale.setPreventista(preventista);
-        sale.setProducts(validProducts);
+        sale.setTotal(saleRequest.getTotal());
 
-        return saleRepository.save(sale);
+        Sale savedSale = saleRepository.save(sale);
+
+        List<SaleProduct> saleProducts = saleRequest.getProductIds().stream()
+                .map(productId -> {
+                    Product product = productRepository.findById(productId)
+                            .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + productId));
+                    SaleProduct saleProduct = new SaleProduct();
+                    saleProduct.setSale(savedSale);
+                    saleProduct.setProduct(product);
+                    saleProduct.setQuantity(1); // Ajusta la cantidad según sea necesario
+                    return saleProduct;
+                })
+                .collect(Collectors.toList());
+
+        saleProductRepository.saveAll(saleProducts);
+
+        return savedSale;
+    }
+
+    public Optional<Sale> updateSale(Long id, SaleUpdateRequestDTO saleUpdateRequest) {
+        return saleRepository.findById(id).map(sale -> {
+            List<SaleProduct> existingSaleProducts = sale.getSaleProducts();
+
+            List<SaleProduct> newSaleProducts = saleUpdateRequest.getProductIds().stream()
+                    .map(productId -> {
+                        Product product = productRepository.findById(productId)
+                                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + productId));
+                        SaleProduct saleProduct = new SaleProduct();
+                        saleProduct.setSale(sale);
+                        saleProduct.setProduct(product);
+                        saleProduct.setQuantity(1); // Ajusta la cantidad según sea necesario
+                        return saleProduct;
+                    })
+                    .collect(Collectors.toList());
+
+            existingSaleProducts.addAll(newSaleProducts);
+
+            sale.setSaleProducts(existingSaleProducts);
+
+            double total = existingSaleProducts.stream()
+                    .mapToDouble(sp -> sp.getProduct().getPrice() * sp.getQuantity())
+                    .sum();
+            sale.setTotal(total);
+
+            return saleRepository.save(sale);
+        });
     }
 
     public void deleteSale(Long id) {
         saleRepository.deleteById(id);
+    }
+
+    public Optional<Sale> addProductsToSale(Long id, AddProductsToSaleDTO addProductsToSaleDTO) {
+        return saleRepository.findById(id).map(sale -> {
+            List<SaleProduct> newSaleProducts = addProductsToSaleDTO.getProductIds().stream()
+                    .map(productId -> {
+                        Product product = productRepository.findById(productId)
+                                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + productId));
+                        SaleProduct saleProduct = new SaleProduct();
+                        saleProduct.setSale(sale);
+                        saleProduct.setProduct(product);
+                        saleProduct.setQuantity(1); // Ajusta la cantidad según sea necesario
+                        return saleProduct;
+                    })
+                    .collect(Collectors.toList());
+
+            List<SaleProduct> existingSaleProducts = sale.getSaleProducts();
+            existingSaleProducts.addAll(newSaleProducts);
+
+            sale.setSaleProducts(existingSaleProducts);
+            sale.setTotal(existingSaleProducts.stream()
+                    .mapToDouble(sp -> sp.getProduct().getPrice() * sp.getQuantity())
+                    .sum());
+
+            return saleRepository.save(sale);
+        });
     }
 }

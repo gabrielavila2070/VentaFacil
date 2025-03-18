@@ -1,8 +1,6 @@
 package com.example.ventas.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sun.istack.NotNull;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
@@ -11,12 +9,11 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Table(name = "products")
+@Table(name = "product")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIdentityInfo(generator= ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,7 +26,7 @@ public class Product {
     private Double price;
     @NotNull
     private Integer stock;
-    @ManyToMany(mappedBy = "products")
-    @JsonBackReference(value = "product-sales")
-    private List<Sale> sales;
+    @ManyToMany(mappedBy = "product")
+    @JsonIgnore
+    private List<SaleProduct> saleProducts;
 }

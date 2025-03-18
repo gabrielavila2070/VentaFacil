@@ -1,5 +1,9 @@
 package com.example.ventas.controller;
 
+import com.example.ventas.dto.AddProductsToSaleDTO;
+import com.example.ventas.dto.SaleRequestDTO;
+import com.example.ventas.dto.SaleResponseDTO;
+import com.example.ventas.dto.SaleUpdateRequestDTO;
 import com.example.ventas.model.Sale;
 import com.example.ventas.service.SaleService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/sales")
@@ -16,22 +21,38 @@ public class SaleController {
     private SaleService saleService;
 
     @GetMapping
-    public List<Sale> getAllSale() {
-        return saleService.getAllSale();
+    public List<SaleResponseDTO> getAllSales() {
+        return saleService.getAllSale().stream()
+                .map(SaleResponseDTO::new)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Sale> getSaleById(@PathVariable Long id) {
+    public ResponseEntity<SaleResponseDTO> getSaleById(@PathVariable Long id) {
         Optional<Sale> sale = saleService.getSaleById(id);
-        return sale.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        return sale.map(s -> ResponseEntity.ok(new SaleResponseDTO(s)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Sale> createSale(@RequestBody Sale sale) {
+    public ResponseEntity<SaleResponseDTO> createSale(@RequestBody SaleRequestDTO saleRequest) {
         try {
-            Sale savedSale = saleService.saveSale(sale);
-            return ResponseEntity.ok(savedSale);
+            Sale newSale = saleService.saveSale(saleRequest);
+            return ResponseEntity.ok(new SaleResponseDTO(newSale));
         } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<SaleResponseDTO> updateSale(@PathVariable Long id, @RequestBody SaleUpdateRequestDTO saleUpdateRequest) {
+        try {
+            Optional<Sale> updatedSale = saleService.updateSale(id, saleUpdateRequest);
+            return updatedSale.map(s -> ResponseEntity.ok(new SaleResponseDTO(s)))
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (RuntimeException e) {
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(null);
         }
     }
@@ -40,5 +61,17 @@ public class SaleController {
     public ResponseEntity<Void> deleteSale(@PathVariable Long id) {
         saleService.deleteSale(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/products")
+    public ResponseEntity<SaleResponseDTO> addProductsToSale(@PathVariable Long id, @RequestBody AddProductsToSaleDTO addProductsToSaleDTO) {
+        try {
+            Optional<Sale> updatedSale = saleService.addProductsToSale(id, addProductsToSaleDTO);
+            return updatedSale.map(s -> ResponseEntity.ok(new SaleResponseDTO(s)))
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(null);
+        }
     }
 }

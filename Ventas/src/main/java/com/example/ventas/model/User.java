@@ -1,7 +1,7 @@
 package com.example.ventas.model;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.sun.istack.NotNull;
 import jakarta.persistence.*;
@@ -15,7 +15,6 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIdentityInfo(generator= ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,6 +33,9 @@ public class User {
     private Role role;
 
     @OneToMany(mappedBy = "preventista", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference(value = "user-sales")
+    @JsonIgnore
     private List<Sale> ventas;
+    public String getName() {
+        return username;
+    }
 }

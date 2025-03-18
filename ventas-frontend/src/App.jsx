@@ -11,6 +11,7 @@ import Products from './components/Products.jsx';
 import Users from './components/Users.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import OrderForm from "./pages/OrderForm.jsx"; // <-- Importación corregida
+import OrdersList from "./pages/OrderList.jsx";
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/supervisor" element={<Supervisor />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/orders" element={<OrderForm />} /> {/* <-- Corregida la ruta */}
+          <Route path='/sales' element={<OrdersList />} />
         </Route>
 
         {/* Redirección por defecto */}

@@ -1,8 +1,5 @@
 package com.example.ventas.model;
 
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.sun.istack.NotNull;
 import jakarta.persistence.*;
 import lombok.*;
@@ -10,12 +7,11 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Table(name = "sales")
+@Table(name = "sale")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIdentityInfo(generator= ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class Sale {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,14 +29,8 @@ public class Sale {
     private User preventista;
 
     @NotNull
-    @ManyToMany
-    @JoinTable(
-            name = "sale_products",
-            joinColumns = @JoinColumn(name = "sale_id"),
-            inverseJoinColumns = @JoinColumn(name = "product_id")
-    )
-    @JsonManagedReference(value = "product-sales")
-    private List<Product> products;
+    @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private List<SaleProduct> saleProducts;
 
     @NotNull
     private Double total;
