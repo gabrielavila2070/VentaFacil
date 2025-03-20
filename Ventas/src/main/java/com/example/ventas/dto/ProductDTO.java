@@ -2,8 +2,10 @@ package com.example.ventas.dto;
 
 import com.example.ventas.model.Product;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+@NoArgsConstructor
 @Getter
 @Setter
 public class ProductDTO {

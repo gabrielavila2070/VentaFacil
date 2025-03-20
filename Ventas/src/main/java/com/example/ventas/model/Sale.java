@@ -4,6 +4,7 @@ import com.sun.istack.NotNull;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -13,25 +14,24 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Sale {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY) //
-    @JoinColumn(name = "client_id", nullable = false)
-    private Client client;
-
+    @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SaleProduct> saleProducts = new ArrayList<>();
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "preventista_id", nullable = false)
     private User preventista;
 
-    @NotNull
-    @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    private List<SaleProduct> saleProducts;
+    @ManyToOne
+    @JoinColumn(name = "client_id")
+    private Client client;
 
     @NotNull
     private Double total;
+
 }

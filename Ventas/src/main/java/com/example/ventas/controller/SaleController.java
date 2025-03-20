@@ -1,9 +1,6 @@
 package com.example.ventas.controller;
 
-import com.example.ventas.dto.AddProductsToSaleDTO;
-import com.example.ventas.dto.SaleRequestDTO;
-import com.example.ventas.dto.SaleResponseDTO;
-import com.example.ventas.dto.SaleUpdateRequestDTO;
+import com.example.ventas.dto.*;
 import com.example.ventas.model.Sale;
 import com.example.ventas.service.SaleService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,6 +64,17 @@ public class SaleController {
     public ResponseEntity<SaleResponseDTO> addProductsToSale(@PathVariable Long id, @RequestBody AddProductsToSaleDTO addProductsToSaleDTO) {
         try {
             Optional<Sale> updatedSale = saleService.addProductsToSale(id, addProductsToSaleDTO);
+            return updatedSale.map(s -> ResponseEntity.ok(new SaleResponseDTO(s)))
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+    @DeleteMapping("/{id}/products")
+    public ResponseEntity<SaleResponseDTO> deleteProductsFromSale(@PathVariable Long id, @RequestBody DeleteProductsFromSaleDTO deleteProductsFromSaleDTO){
+        try{
+            Optional<Sale> updatedSale = saleService.deleteProductsFromSale(id, deleteProductsFromSaleDTO);
             return updatedSale.map(s -> ResponseEntity.ok(new SaleResponseDTO(s)))
                     .orElseGet(() -> ResponseEntity.notFound().build());
         } catch (RuntimeException e) {

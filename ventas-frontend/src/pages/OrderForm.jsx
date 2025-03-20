@@ -1,190 +1,126 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-const OrderForm = ({ currentOrder }) => {
+const OrderForm = ({ onClose, onOrderCreated }) => {
     const [clients, setClients] = useState([]);
+    const [selectedClient, setSelectedClient] = useState("");
     const [products, setProducts] = useState([]);
-    const [selectedClient, setSelectedClient] = useState(currentOrder ? currentOrder.clientId : "");
-    const [orderItems, setOrderItems] = useState(currentOrder ? currentOrder.products : []);
-    const [total, setTotal] = useState(currentOrder ? currentOrder.total : 0);
-    const [message, setMessage] = useState("");
-
-    const user = JSON.parse(localStorage.getItem("user"));
+    const [orderItems, setOrderItems] = useState([]);
 
     useEffect(() => {
-        axios.get("/clients")
-            .then(response => {
-                if (Array.isArray(response.data)) {
-                    setClients(response.data);
-                }
-            })
-            .catch(error => console.error("Error fetching clients", error));
-
-        axios.get("/products")
-            .then(response => {
-                if (Array.isArray(response.data)) {
-                    setProducts(response.data);
-                }
-            })
-            .catch(error => console.error("Error fetching products", error));
+        axios.get("/clients").then(response => setClients(response.data));
+        axios.get("/products").then(response => setProducts(response.data));
     }, []);
 
-    useEffect(() => {
-        if (currentOrder) {
-            setSelectedClient(currentOrder.clientId);
-            setOrderItems(currentOrder.products);
-            setTotal(currentOrder.total);
-        }
-    }, [currentOrder]);
-
-    const calculateTotal = (items) => {
-        const totalAmount = items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
-        setTotal(totalAmount);
-    };
-
-    const handleQuantityChange = (productId, quantity) => {
-        quantity = Math.max(0, quantity);
-    
+    const handleAddProduct = (product) => {
         setOrderItems(prevItems => {
-            return prevItems.map(item =>
-                item.id === productId ? { ...item, quantity } : item
-            );
+            const existingItem = prevItems.find(item => item.id === product.id);
+            if (existingItem) {
+                return prevItems.map(item => 
+                    item.id === product.id 
+                        ? { ...item, quantity: item.quantity + 1 } 
+                        : item
+                );
+            }
+            return [...prevItems, { ...product, quantity: 1 }];
         });
-    
-        calculateTotal(orderItems);
     };
-    
 
-    const handleSubmit = () => {
+    const handleCreateOrder = () => {
         if (!selectedClient || orderItems.length === 0) {
-            alert("Seleccione un cliente y al menos un producto.");
+            alert("Selecciona un cliente y al menos un producto");
             return;
         }
-
-        if (!user || user.id === null || user.id === undefined) {
-            alert("Error: No se pudo obtener el usuario.");
-            return;
-        }
-
-        const selectedClientData = clients.find(client => String(client.id) === String(selectedClient));
-
-        if (!selectedClientData || !selectedClientData.id) {
-            alert("Error: Cliente no encontrado o sin ID.");
-            return;
-        }
-
-        if (orderItems.some(item => !item.id)) {
-            alert("Error: Hay productos sin ID.");
-            return;
-        }
-
+    
+        const user = JSON.parse(localStorage.getItem("user")); // Obtener usuario logueado
+        
+        // Estructura exacta que espera el backend
         const orderData = {
-            clientId: selectedClientData.id,
-            preventistaId: user.id,
-            productIds: orderItems.map(item => item.id),
-            total: total
+            clientId: Number(selectedClient),
+            preventistaId: user.id, // ID del usuario logueado
+            products: orderItems.map(item => ({
+                id: Number(item.id), // Solo enviar ID del producto
+                quantity: Number(item.quantity)
+            })),
+            total: orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
         };
-
-        if (currentOrder) {
-            // Actualizar pedido existente
-            axios.put(`/sales/${currentOrder.id}`, orderData)
-                .then(response => {
-                    alert("Pedido actualizado con éxito!");
-                    setMessage("Pedido actualizado con éxito!");
-                })
-                .catch(error => {
-                    console.error("Error actualizando la venta:", error.response ? error.response.data : error);
-                    alert("Hubo un error al actualizar el pedido.");
-                });
-        } else {
-            // Crear nuevo pedido
-            axios.post("/sales", orderData)
-                .then(response => {
-                    alert("Pedido registrado con éxito!");
-                    setMessage("Pedido registrado con éxito!");
-                    setSelectedClient("");
-                    setOrderItems([]);
-                    setTotal(0);
-                })
-                .catch(error => {
-                    console.error("Error creando la venta:", error.response ? error.response.data : error);
-                    alert("Hubo un error al registrar el pedido.");
-                });
-        }
+    
+        axios.post("/sales", orderData)
+            .then(response => {
+                alert("Venta creada con éxito!");
+                onOrderCreated(response.data);
+                onClose();
+            })
+            .catch(error => {
+                console.error("Error en creación:", error.response?.data);
+                alert("Error: " + (error.response?.data?.message || "Verifica los datos"));
+            });
     };
 
     return (
-        <div className="flex flex-col h-screen p-6 bg-gray-100">
-            <h2 className="text-3xl font-bold mb-4 text-gray-800">{currentOrder ? "Editar Pedido" : "Nuevo Pedido"}</h2>
-
-            <div className="mb-4 bg-white p-4 rounded-lg shadow text-gray-800">
-                <h3 className="text-lg font-semibold mb-2 text-gray-800">Seleccionar Cliente</h3>
+        <div className="p-4">
+            <h2 className="text-xl font-bold mb-4">Nuevo Pedido</h2>
+            
+            <div className="mb-4">
+                <label className="block mb-2">Cliente:</label>
                 <select 
-                    value={selectedClient} 
+                    value={selectedClient}
                     onChange={e => setSelectedClient(e.target.value)}
-                    className="border p-2 w-full rounded bg-gray-50"
+                    className="border p-2 w-full"
                 >
-                    <option value="">Seleccione un cliente</option>
+                    <option value="">Seleccionar Cliente</option>
                     {clients.map(client => (
-                        <option key={client.id} value={client.id}>{client.firstName} {client.lastName}</option>
+                        <option key={client.id} value={client.id}>
+                            {client.name}
+                        </option>
                     ))}
                 </select>
             </div>
 
-            <div className="bg-white p-4 rounded-lg shadow flex-1 overflow-auto">
-                <h3 className="text-lg font-semibold mb-2 text-gray-800">Lista de Productos</h3>
-                <table className="w-full border-collapse">
-                    <thead>
-                        <tr className="bg-blue-500 text-white">
-                            <th className="border px-4 py-2 text-left">Producto</th>
-                            <th className="border px-4 py-2 text-left">Precio</th>
-                            <th className="border px-4 py-2 text-left">Cantidad</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {products.map(product => (
-                            <tr key={product.id} className="border-b">
-                                <td className="border px-4 py-2 text-gray-800">{product.name}</td>
-                                <td className="border px-4 py-2 text-gray-800">${product.price}</td>
-                                <td className="border px-4 py-2">
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={orderItems.find(item => item.id === product.id)?.quantity || ""}
-                                        onChange={e => handleQuantityChange(product.id, parseInt(e.target.value) || 0)}
-                                        className="border p-1 w-full text-center bg-gray-50"
-                                    />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            <div className="mb-4">
+                <h3 className="text-lg font-semibold mb-2">Productos Disponibles</h3>
+                <div className="grid grid-cols-2 gap-2">
+                    {products.map(product => (
+                        <button
+                            key={product.id}
+                            onClick={() => handleAddProduct(product)}
+                            className="p-2 border rounded hover:bg-gray-100 text-left"
+                        >
+                            <span className="font-medium">{product.name}</span>
+                            <span className="block text-sm">Precio: ${product.price}</span>
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {orderItems.length > 0 && (
-                <div className="mt-4 bg-white p-4 rounded-lg shadow">
-                    <h3 className="text-lg font-semibold mb-2 text-gray-800">Resumen del Pedido</h3>
-                    <ul>
+                <div className="mb-4">
+                    <h3 className="text-lg font-semibold mb-2">Productos Seleccionados</h3>
+                    <ul className="space-y-2">
                         {orderItems.map(item => (
-                            <li key={item.id} className="text-gray-700">
-                                {item.name} - {item.quantity} x ${item.price} = ${item.quantity * item.price}
+                            <li key={item.id} className="flex justify-between items-center">
+                                <span>{item.name} (x{item.quantity})</span>
+                                <span>${(item.price * item.quantity).toFixed(2)}</span>
                             </li>
                         ))}
                     </ul>
                 </div>
             )}
 
-            <div className="mt-4">
-                <h3 className="text-lg font-bold text-gray-800">Total: ${total.toFixed(2)}</h3>
+            <div className="flex gap-4">
                 <button 
-                    onClick={handleSubmit} 
-                    className="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition"
+                    onClick={handleCreateOrder}
+                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                 >
-                    {currentOrder ? "Actualizar Pedido" : "Confirmar Pedido"}
+                    Crear Pedido
+                </button>
+                <button 
+                    onClick={onClose}
+                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                >
+                    Cancelar
                 </button>
             </div>
-
-            {message && <p className="mt-4 text-green-600 font-bold">{message}</p>}
         </div>
     );
 };

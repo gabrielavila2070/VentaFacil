@@ -1,30 +1,36 @@
 package com.example.ventas.model;
 
-import com.sun.istack.NotNull;
 import jakarta.persistence.*;
 import lombok.*;
 
+@Entity
 @Table(name = "sale_product")
 @Getter
 @Setter
-@Entity
+@NoArgsConstructor
+@AllArgsConstructor
 public class SaleProduct {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @EmbeddedId
+    private SaleProductId id; // Clave primaria compuesta
 
-    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("saleId") // Enlaza con la clave compuesta
     @JoinColumn(name = "sale_id", nullable = false)
     private Sale sale;
 
-    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("productId") // Enlaza con la clave compuesta
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @NotNull
+    @Column(nullable = false)
     private Integer quantity;
 
+    public SaleProduct(Sale sale, Product product, Integer quantity) {
+        this.sale = sale;
+        this.product = product;
+        this.quantity = quantity;
+        this.id = new SaleProductId(sale.getId(), product.getId());
+    }
 }

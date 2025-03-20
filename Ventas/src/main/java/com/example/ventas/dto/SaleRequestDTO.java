@@ -10,7 +10,7 @@ import java.util.List;
 public class SaleRequestDTO {
     private Long clientId;
     private Long preventistaId;
-    private List<Long> productIds;
+    private List<ProductDTO> products;
     private double total;
 
 }
