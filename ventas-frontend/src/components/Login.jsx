@@ -41,7 +41,7 @@ function Login() {
         <div className="text-center">
           <div className="inline-flex items-center gap-3 mb-6 animate-fade-in">
             <img 
-              src="images/logo.png" 
+              src="/images/logo.jpg"
               alt="Logo" 
               className="w-16 h-16 drop-shadow-lg transition-transform hover:scale-105"
             />
