@@ -10,22 +10,27 @@ function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+   
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     
     try {
-      const response = await axios.post('/auth/login', { username, password });
-      const { token, user } = response.data;
-      
+      const response = await axios.post('/auth/login', null, {  
+        params: { username, password },
+      });
+  
+      const token = response.data.token;
+      const user = response.data.user;   // Ahora el backend envía user
+  
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      navigate('/dashboard');
+      localStorage.setItem('user', JSON.stringify(user)); // Guarda el usuario
+  
+      navigate('/dashboard'); 
     } catch (err) {
-      setError('Credenciales incorrectas o error de conexión');
-      setIsLoading(false);
+      setError('Credenciales incorrectas');
+      console.error('Error al iniciar sesión:', err);
     }
   };
 
@@ -36,7 +41,7 @@ function Login() {
         <div className="text-center">
           <div className="inline-flex items-center gap-3 mb-6 animate-fade-in">
             <img 
-              src="images/logo.jpg" 
+              src="images/logo.png" 
               alt="Logo" 
               className="w-16 h-16 drop-shadow-lg transition-transform hover:scale-105"
             />
