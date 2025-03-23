@@ -98,133 +98,196 @@ function Clients() {
   const currentClients = filteredClients.slice(indexOfFirstClient, indexOfLastClient);
 
   return (
-    <div className="flex flex-col h-screen p-6">
-      <h2 className="text-3xl font-bold mb-4 text-white-800">Gestión de Clientes</h2>
+    <div className="p-6 max-w-6xl mx-auto">
+      {/* Header y Botón */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <FaUserPlus className="text-blue-600" />
+          Gestión de Clientes
+        </h2>
+      </div>
 
-      {/* Alertas */}
+      {/* Mensajes de estado */}
       {message && (
-        <div className="bg-green-500 text-white p-2 rounded mb-4 flex justify-between">
-          {message}
-          <FaTimes onClick={() => setMessage("")} className="cursor-pointer" />
+        <div className={`mb-6 p-3 rounded-lg flex items-center justify-between 
+          ${message.includes("éxito") ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+          <span>{message}</span>
+          <FaTimes 
+            onClick={() => setMessage("")} 
+            className="cursor-pointer hover:opacity-70"
+          />
         </div>
       )}
 
-      {/* Formulario Agregar Cliente */}
-      <div className="bg-white p-4 rounded shadow-md mb-6">
-        <h3 className="text-lg font-semibold mb-2">Agregar Cliente</h3>
-        <input type="text" name="firstName" value={newClient.firstName} onChange={handleChange} placeholder="Nombre"
-          className="border p-2 w-full mb-2" />
-        <input type="text" name="lastName" value={newClient.lastName} onChange={handleChange} placeholder="Apellido"
-          className="border p-2 w-full mb-2" />
-        <input type="email" name="email" value={newClient.email} onChange={handleChange} placeholder="Correo"
-          className="border p-2 w-full mb-2" />
-        <button onClick={handleAddClient} className="bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2">
-          <FaUserPlus /> Agregar Cliente
-        </button>
-      </div>
-
-      {/* Barra de búsqueda */}
-      <div className="bg-white p-4 rounded shadow-md mb-4 flex items-center gap-2">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar cliente..."
-          className="border p-2 w-full"
-        />
+      {/* Formulario de agregar */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h3 className="text-lg font-semibold mb-4 text-gray-700">Nuevo Cliente</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <input
+            type="text"
+            name="firstName"
+            value={newClient.firstName}
+            onChange={handleChange}
+            placeholder="Nombre"
+            className="p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="text"
+            name="lastName"
+            value={newClient.lastName}
+            onChange={handleChange}
+            placeholder="Apellido"
+            className="p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            type="email"
+            name="email"
+            value={newClient.email}
+            onChange={handleChange}
+            placeholder="Correo electrónico"
+            className="p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
         <button
-          onClick={handleSearch}
-          className="bg-blue-500 text-white px-4 py-2 rounded flex items-center"
+          onClick={handleAddClient}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
         >
-          <FaSearch /> Buscar
+          <FaUserPlus />
+          Agregar Cliente
         </button>
       </div>
 
-      {/* Tabla de Clientes */}
-      <div className="bg-white p-4 rounded shadow-md">
-        <h3 className="text-lg font-semibold mb-2">Lista de Clientes</h3>
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-gray-800">
-              <th className="border p-2">Nombre</th>
-              <th className="border p-2">Apellido</th>
-              <th className="border p-2">Email</th>
-              <th className="border p-2">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentClients.map(client => (
-              <tr key={client.id} className="border">
-                {/* Si está en modo edición, mostramos los campos de edición */}
-                {editingClientId === client.id ? (
-                  <>
-                    <td className="p-2">
-                      <input
-                        type="text"
-                        name="firstName"
-                        value={editingClientData.firstName}
-                        onChange={handleEditClientChange}
-                        className="border p-2 w-full"
-                      />
-                    </td>
-                    <td className="p-2">
-                      <input
-                        type="text"
-                        name="lastName"
-                        value={editingClientData.lastName}
-                        onChange={handleEditClientChange}
-                        className="border p-2 w-full"
-                      />
-                    </td>
-                    <td className="p-2">
-                      <input
-                        type="email"
-                        name="email"
-                        value={editingClientData.email}
-                        onChange={handleEditClientChange}
-                        className="border p-2 w-full"
-                      />
-                    </td>
-                    <td className="p-2 flex gap-2">
-                      <button onClick={() => handleSaveEdit(client.id)} className="text-green-500">
-                        <FaCheck />
-                      </button>
-                      <button onClick={() => setEditingClientId(null)} className="text-gray-500">
-                        <FaTimes />
-                      </button>
-                    </td>
-                  </>
-                ) : (
-                  <>
-                    <td className="p-2 text-gray-800">{client.firstName}</td>
-                    <td className="p-2 text-gray-800">{client.lastName}</td>
-                    <td className="p-2 text-gray-800">{client.email}</td>
-                    <td className="p-2 flex gap-2">
-                      <button onClick={() => { setEditingClientId(client.id); setEditingClientData(client); }} className="text-yellow-500">
-                        <FaEdit />
-                      </button>
-                      <button onClick={() => handleDeleteClient(client.id)} className="text-red-500">
-                        <FaTrash />
-                      </button>
-                    </td>
-                  </>
-                )}
+      {/* Búsqueda */}
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar clientes..."
+            className="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            onClick={handleSearch}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <FaSearch />
+            Buscar
+          </button>
+        </div>
+      </div>
+
+      {/* Listado de clientes */}
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Nombre</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Apellido</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
+                <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {currentClients.map(client => (
+                <tr key={client.id} className="hover:bg-gray-50 transition-colors">
+                  {editingClientId === client.id ? (
+                    <>
+                      <td className="px-6 py-4">
+                        <input
+                          type="text"
+                          name="firstName"
+                          value={editingClientData.firstName}
+                          onChange={handleEditClientChange}
+                          className="p-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <input
+                          type="text"
+                          name="lastName"
+                          value={editingClientData.lastName}
+                          onChange={handleEditClientChange}
+                          className="p-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <input
+                          type="email"
+                          name="email"
+                          value={editingClientData.email}
+                          onChange={handleEditClientChange}
+                          className="p-2 border rounded-lg w-full focus:ring-2 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => handleSaveEdit(client.id)}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                          >
+                            <FaCheck />
+                          </button>
+                          <button
+                            onClick={() => setEditingClientId(null)}
+                            className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg"
+                          >
+                            <FaTimes />
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-6 py-4 font-medium text-gray-800">{client.firstName}</td>
+                      <td className="px-6 py-4 text-gray-800">{client.lastName}</td>
+                      <td className="px-6 py-4 text-gray-600">{client.email}</td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => { setEditingClientId(client.id); setEditingClientData(client); }}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClient(client.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* Paginación */}
-        <div className="flex justify-between items-center mt-4">
-          <button disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}
-            className={`px-4 py-2 rounded ${currentPage === 1 ? "bg-gray-300" : "bg-blue-500 text-white"}`}>
-            <FaChevronLeft />
-          </button>
-          <span>Página {currentPage} de {Math.ceil(filteredClients.length / clientsPerPage)}</span>
-          <button disabled={indexOfLastClient >= filteredClients.length} onClick={() => setCurrentPage(currentPage + 1)}
-            className={`px-4 py-2 rounded ${indexOfLastClient >= filteredClients.length ? "bg-gray-300" : "bg-blue-500 text-white"}`}>
-            <FaChevronRight />
-          </button>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+          <div className="text-sm text-gray-600">
+            Mostrando {indexOfFirstClient + 1}-{Math.min(indexOfLastClient, filteredClients.length)} de {filteredClients.length}
+          </div>
+          <div className="flex gap-2">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(currentPage - 1)}
+              className={`p-2 rounded-lg ${currentPage === 1 ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+            >
+              <FaChevronLeft />
+            </button>
+            <button
+              disabled={indexOfLastClient >= filteredClients.length}
+              onClick={() => setCurrentPage(currentPage + 1)}
+              className={`p-2 rounded-lg ${indexOfLastClient >= filteredClients.length ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+            >
+              <FaChevronRight />
+            </button>
+          </div>
         </div>
       </div>
     </div>

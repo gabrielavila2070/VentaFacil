@@ -10,8 +10,9 @@ import Clients from './components/Clients.jsx';
 import Products from './components/Products.jsx';
 import Users from './components/Users.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
-import OrderForm from "./pages/OrderForm.jsx"; // <-- Importación corregida
+import EditOrderForm from "./pages/EditOrderForm.jsx";
 import OrdersList from "./pages/OrderList.jsx";
+import NewOrderForm from './pages/NewOrderForm.jsx';
 
 function App() {
   return (
@@ -30,8 +31,9 @@ function App() {
           <Route path="/preventista" element={<Preventista />} />
           <Route path="/supervisor" element={<Supervisor />} />
           <Route path="/admin" element={<Admin />} />
-          <Route path="/orders" element={<OrderForm />} /> {/* <-- Corregida la ruta */}
-          <Route path='/sales' element={<OrdersList />} />
+          <Route path="/sales" element={<OrdersList />} /> {/* Lista de ventas */}
+          <Route path="/sales/new" element={<NewOrderForm />} /> {/* Crear nueva venta */}
+          <Route path="/sales/edit/:id" element={<EditOrderForm />} /> {/* Editar venta existente */}
         </Route>
 
         {/* Redirección por defecto */}

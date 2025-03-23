@@ -20,13 +20,13 @@ public class JwtUtil {
                 .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(key) // Ahora sí es compatible con SecretKey
+                .signWith(key)
                 .compact();
     }
 
     public String extractUsername(String token) {
         return Jwts.parser()
-                .verifyWith(key) // Ahora sí es compatible
+                .verifyWith(key)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()

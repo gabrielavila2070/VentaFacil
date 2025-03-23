@@ -53,7 +53,7 @@ public class SaleService {
         User preventista = userRepository.findById(saleRequest.getPreventistaId())
                 .orElseThrow(() -> new RuntimeException("Preventista no encontrado"));
 
-        // 🔹 Primero guardamos la venta para generar el ID
+        // Primero guardamos la venta para generar el ID
         Sale sale = new Sale();
         sale.setClient(client);
         sale.setPreventista(preventista);
@@ -61,13 +61,13 @@ public class SaleService {
 
         Sale savedSale = saleRepository.save(sale); // ✅ Aquí se genera el ID de la venta
 
-        // 🔹 Luego creamos los productos asociados con la venta
+        // creamos los productos asociados con la venta
         List<SaleProduct> saleProducts = saleRequest.getProducts().stream()
                 .map(productDTO -> {
                     Product product = productRepository.findById(productDTO.getId())
                             .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + productDTO.getId()));
 
-                    return new SaleProduct(savedSale, product, productDTO.getQuantity()); // ✅ Usa el constructor correcto
+                    return new SaleProduct(savedSale, product, productDTO.getQuantity());
                 })
                 .collect(Collectors.toList());
 
@@ -114,23 +114,38 @@ public class SaleService {
     @Transactional
     public Optional<Sale> addProductsToSale(Long id, AddProductsToSaleDTO addProductsToSaleDTO) {
         return saleRepository.findById(id).map(sale -> {
-            for (Long productIdToAdd : addProductsToSaleDTO.getProductIds()) {
+            List<Long> productIdsToAdd = addProductsToSaleDTO.getProductIds();
+            List<Integer> quantitiesToAdd = addProductsToSaleDTO.getQuantities();
+
+            if (productIdsToAdd.size() != quantitiesToAdd.size()) {
+                throw new IllegalArgumentException("Las listas de productIds y quantities deben tener el mismo tamaño.");
+            }
+
+            for (int i = 0; i < productIdsToAdd.size(); i++) {
+                Long productIdToAdd = productIdsToAdd.get(i);
+                Integer quantityToAdd = quantitiesToAdd.get(i);
+
                 Product product = productRepository.findById(productIdToAdd)
                         .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + productIdToAdd));
+
+                if (product.getStock() < quantityToAdd) {
+                    throw new IllegalArgumentException("La cantidad solicitada para '" + product.getName() +
+                            "' supera el stock disponible (" + product.getStock() + ").");
+                }
 
                 SaleProductId saleProductId = new SaleProductId(sale.getId(), product.getId());
                 Optional<SaleProduct> existingSaleProduct = saleProductRepository.findById(saleProductId);
 
                 if (existingSaleProduct.isPresent()) {
                     SaleProduct sp = existingSaleProduct.get();
-                    sp.setQuantity(sp.getQuantity() + 1);
+                    sp.setQuantity(sp.getQuantity() + quantityToAdd); // Sumar la cantidad enviada a la existente
                     saleProductRepository.save(sp);
                 } else {
                     SaleProduct newSaleProduct = new SaleProduct();
                     newSaleProduct.setId(saleProductId);
                     newSaleProduct.setSale(sale);
                     newSaleProduct.setProduct(product);
-                    newSaleProduct.setQuantity(1);
+                    newSaleProduct.setQuantity(quantityToAdd); // Establecer la cantidad enviada
                     saleProductRepository.save(newSaleProduct);
                     sale.getSaleProducts().add(newSaleProduct);
                 }
@@ -150,7 +165,7 @@ public class SaleService {
             Map<Long, Integer> productQuantities = deleteProductsFromSaleDTO.getProducts()
                     .entrySet()
                     .stream()
-                    .collect(Collectors.toMap(entry -> Long.parseLong(entry.getKey()), Map.Entry::getValue));
+                    .collect(Collectors.toMap(entry -> Long.parseLong(String.valueOf(entry.getKey())), Map.Entry::getValue));
 
             // Iterar sobre los productos a eliminar
             productQuantities.forEach((productId, quantityToRemove) -> {
