@@ -1,8 +1,9 @@
 Venta Fácil 🛍️
 
 Venta Fácil es una aplicación web diseñada para simplificar y optimizar el proceso de ventas. La app permite gestionar preventistas, clientes, pedidos y productos, asegurando un control preciso del inventario y un flujo de ventas eficiente. Con una interfaz intuitiva y funcionalidades clave como manejo de stock y seguimiento del estado de pedidos, Venta Fácil es ideal para pequeñas y medianas empresas que buscan digitalizar su gestión de ventas.
-Características principales 🚀
-🔑 Autenticación y Roles de Usuario
+Características principales
+
+🚀🔑 Autenticación y Roles de Usuario
 
     Admin: Puede gestionar usuarios, cargar productos y controlar el stock.
     Preventista: Registra ventas, clientes y pedidos.
