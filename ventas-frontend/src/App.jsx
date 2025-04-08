@@ -13,6 +13,8 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import EditOrderForm from "./pages/EditOrderForm.jsx";
 import OrdersList from "./pages/OrderList.jsx";
 import NewOrderForm from './pages/NewOrderForm.jsx';
+import ClosedSalesList from './pages/ClosedSalesList.jsx';
+import ClosedSalesListDetails from './pages/ClosedSalesListDetails.jsx';
 
 function App() {
   return (
@@ -34,6 +36,8 @@ function App() {
           <Route path="/sales" element={<OrdersList />} /> {/* Lista de ventas */}
           <Route path="/sales/new" element={<NewOrderForm />} /> {/* Crear nueva venta */}
           <Route path="/sales/edit/:id" element={<EditOrderForm />} /> {/* Editar venta existente */}
+          <Route path="/sales/closed-sales" element={<ClosedSalesList />} /> {/* Ventas cerradas */}
+          <Route path="/sales/closed-sales/details/:id" element={<ClosedSalesListDetails />} /> {/* Ventas cerradas */}
         </Route>
 
         {/* Redirección por defecto */}

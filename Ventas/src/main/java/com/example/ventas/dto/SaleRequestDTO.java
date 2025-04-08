@@ -1,5 +1,6 @@
 package com.example.ventas.dto;
 
+import com.example.ventas.model.SaleStatus;
 import lombok.*;
 
 import java.util.List;
@@ -12,5 +13,6 @@ public class SaleRequestDTO {
     private Long preventistaId;
     private List<ProductDTO> products;
     private double total;
+    private SaleStatus saleStatus;
 
 }

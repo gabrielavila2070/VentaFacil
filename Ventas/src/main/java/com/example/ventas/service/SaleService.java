@@ -5,15 +5,13 @@ import com.example.ventas.dto.DeleteProductsFromSaleDTO;
 import com.example.ventas.dto.SaleRequestDTO;
 import com.example.ventas.dto.SaleUpdateRequestDTO;
 import com.example.ventas.model.*;
-import com.example.ventas.repository.ClientRepository;
-import com.example.ventas.repository.ProductRepository;
-import com.example.ventas.repository.SaleProductRepository;
-import com.example.ventas.repository.SaleRepository;
-import com.example.ventas.repository.UserRepository;
+import com.example.ventas.repository.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +30,8 @@ public class SaleService {
     private ProductRepository productRepository;
     @Autowired
     private SaleProductRepository saleProductRepository;
+    @Autowired
+    private ClosedSaleRepository closedSaleRepository;
 
     public List<Sale> getAllSale() {
         return saleRepository.findAll();
@@ -40,7 +40,6 @@ public class SaleService {
     public Optional<Sale> getSaleById(Long id) {
         return saleRepository.findById(id);
     }
-
 
     public Sale saveSale(SaleRequestDTO saleRequest) {
         if (saleRequest.getProducts() == null || saleRequest.getProducts().isEmpty()) {
@@ -58,7 +57,9 @@ public class SaleService {
         sale.setClient(client);
         sale.setPreventista(preventista);
         sale.setTotal(saleRequest.getTotal());
-
+        sale.setSaleStatus(saleRequest.getSaleStatus() != null ?
+                saleRequest.getSaleStatus() :
+                SaleStatus.PENDIENTE);
         Sale savedSale = saleRepository.save(sale); // ✅ Aquí se genera el ID de la venta
 
         // creamos los productos asociados con la venta
@@ -76,37 +77,100 @@ public class SaleService {
         return savedSale;
     }
 
-
-
+    public List<ClosedSale> getClosedSales() {
+        return closedSaleRepository.findAll();}
+    public ClosedSale getClosedSaleById(Long id) {
+        return closedSaleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Venta cerrada no encontrada con ID: " + id));
+    }
+    @Transactional
+    public void deleteClosedSale(Long id) {
+        ClosedSale closedSale = closedSaleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Venta cerrada no encontrada"));
+        closedSaleRepository.delete(closedSale);
+    }
     public Optional<Sale> updateSale(Long id, SaleUpdateRequestDTO saleUpdateRequest) {
         return saleRepository.findById(id).map(sale -> {
-            List<SaleProduct> existingSaleProducts = sale.getSaleProducts();
+            // Actualizar productos sólo si se envía una lista no vacía en el DTO
+            if (saleUpdateRequest.getProductIds() != null && !saleUpdateRequest.getProductIds().isEmpty()) {
+                List<SaleProduct> existingSaleProducts = sale.getSaleProducts();
+                List<SaleProduct> newSaleProducts = saleUpdateRequest.getProductIds().stream()
+                        .map(productId -> {
+                            Product product = productRepository.findById(productId)
+                                    .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + productId));
+                            SaleProduct saleProduct = new SaleProduct();
+                            saleProduct.setSale(sale);
+                            saleProduct.setProduct(product);
+                            saleProduct.setQuantity(1); // Ajusta la cantidad según sea necesario
+                            return saleProduct;
+                        })
+                        .collect(Collectors.toList());
+                existingSaleProducts.addAll(newSaleProducts);
+                sale.setSaleProducts(existingSaleProducts);
 
-            List<SaleProduct> newSaleProducts = saleUpdateRequest.getProductIds().stream()
-                    .map(productId -> {
-                        Product product = productRepository.findById(productId)
-                                .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + productId));
-                        SaleProduct saleProduct = new SaleProduct();
-                        saleProduct.setSale(sale);
-                        saleProduct.setProduct(product);
-                        saleProduct.setQuantity(1); // Ajusta la cantidad según sea necesario
-                        return saleProduct;
-                    })
-                    .collect(Collectors.toList());
+                double total = existingSaleProducts.stream()
+                        .mapToDouble(sp -> sp.getProduct().getPrice() * sp.getQuantity())
+                        .sum();
+                sale.setTotal(total);
+            }
 
-            existingSaleProducts.addAll(newSaleProducts);
-
-            sale.setSaleProducts(existingSaleProducts);
-
-            double total = existingSaleProducts.stream()
-                    .mapToDouble(sp -> sp.getProduct().getPrice() * sp.getQuantity())
-                    .sum();
-            sale.setTotal(total);
+            // Actualizar estado si se envía en el DTO
+            if (saleUpdateRequest.getSaleStatus() != null) {
+                sale.setSaleStatus(saleUpdateRequest.getSaleStatus());
+            }
 
             return saleRepository.save(sale);
         });
     }
 
+    @Transactional
+    public ClosedSale closeSale(Long saleId) {
+        // Buscar la venta original
+        Sale sale = saleRepository.findById(saleId)
+                .orElseThrow(() -> new RuntimeException("Venta no encontrada"));
+
+        // Verificar que el estado sea ENTREGADO
+        if (!sale.getSaleStatus().equals(SaleStatus.ENTREGADO)) {
+            throw new RuntimeException("Solo se pueden cerrar ventas entregadas.");
+        }
+
+        // Crear la entidad ClosedSale
+        ClosedSale closedSale = new ClosedSale();
+        closedSale.setOriginalSaleId(sale.getId());
+        closedSale.setClient(sale.getClient());
+        closedSale.setTotal(sale.getTotal());
+        closedSale.setDateClosed(LocalDateTime.now());
+
+        // Mapear los productos de la venta a ClosedSaleProduct
+        List<ClosedSaleProduct> closedSaleProducts = sale.getSaleProducts().stream()
+                .map(sp -> {
+                    double total = sp.getProduct().getPrice();
+                    ClosedSaleProduct csp = new ClosedSaleProduct();
+                    csp.setClosedSale(closedSale);
+                    csp.setProduct(sp.getProduct());
+                    csp.setQuantity(sp.getQuantity());
+                    csp.setTotal(total);
+                    // Inicialmente, dejamos la clave compuesta con null en closedSaleId
+                    csp.setId(new ClosedSaleProductId(null, sp.getProduct().getId()));
+                    return csp;
+                })
+                .collect(Collectors.toList());
+        closedSale.setClosedSaleProducts(closedSaleProducts);
+
+        // Guardar la venta cerrada
+        ClosedSale savedClosedSale = closedSaleRepository.save(closedSale);
+
+        // Completar las claves compuestas de ClosedSaleProduct si es necesario
+        savedClosedSale.getClosedSaleProducts().forEach(csp ->
+                csp.setId(new ClosedSaleProductId(savedClosedSale.getId(), csp.getProduct().getId()))
+        );
+        closedSaleRepository.save(savedClosedSale);
+
+        // Eliminar la venta original de la base de datos (junto con sus asociaciones, si las cascadas están bien configuradas)
+        saleRepository.delete(sale);
+
+        return savedClosedSale;
+    }
     public void deleteSale(Long id) {
         saleRepository.deleteById(id);
     }

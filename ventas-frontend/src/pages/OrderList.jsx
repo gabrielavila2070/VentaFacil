@@ -19,7 +19,42 @@ function OrdersList() {
     }
     fetchOrders();
   }, []);
-
+  const handleStatusChange = async (order) => {
+    const newStatus =
+      order.saleStatus === 'PENDIENTE'
+        ? 'EN_CAMINO'
+        : order.saleStatus === 'EN_CAMINO'
+        ? 'ENTREGADO'
+        : 'PENDIENTE';
+  
+    try {
+      // Paso 1: actualizar el estado
+      await axios.put(`/sales/${order.id}`, { saleStatus: newStatus });
+  
+      // Paso 2: actualizar el estado localmente
+      setOrders((prevOrders) =>
+        prevOrders.map((o) =>
+          o.id === order.id ? { ...o, saleStatus: newStatus } : o
+        )
+      );
+  
+    } catch (error) {
+      console.error(error);
+      setError('Error al actualizar el estado o cerrar la venta.');
+    }
+  };
+  const handleCloseSale = async (saleId) => {
+    try {
+      await axios.post(`/sales/${saleId}/close`);
+      // Actualizás el estado local para reflejar que se cerró
+      setOrders((prev) =>
+        prev.map((o) => (o.id === saleId ? { ...o, closed: true } : o))
+      );
+    } catch (error) {
+      console.error('Error al cerrar la venta:', error);
+    }
+  };
+  
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -84,6 +119,33 @@ function OrdersList() {
                   <FaEdit className="text-sm" />
                   <span>Editar Pedido</span>
                 </button>
+                
+                <button
+  disabled={order.saleStatus === 'ENTREGADO'}
+  className={`px-3 py-2 rounded-lg text-white transition-colors ${
+    order.saleStatus === 'PENDIENTE'
+      ? 'bg-yellow-500 hover:bg-yellow-600'
+      : order.saleStatus === 'EN_CAMINO'
+      ? 'bg-blue-500 hover:bg-blue-600'
+      : 'bg-green-500 cursor-not-allowed'
+  }`}
+  onClick={() => handleStatusChange(order)}
+>
+  {order.saleStatus === 'PENDIENTE'
+    ? 'Pendiente'
+    : order.saleStatus === 'EN_CAMINO'
+    ? 'En Camino'
+    : 'Entregado'}
+</button>
+{order.saleStatus === 'ENTREGADO' && !order.closed && (
+  <button
+    onClick={() => handleCloseSale(order.id)}
+    className="bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
+  >
+    Cerrar venta
+  </button>
+)}
+
               </div>
             </div>
           ))}

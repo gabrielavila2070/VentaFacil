@@ -3,12 +3,26 @@ import { useNavigate, NavLink } from 'react-router-dom';
 import { FaChartLine, FaUsers, FaBox, FaShoppingCart, FaSignOutAlt, FaUserCircle } from 'react-icons/fa';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS } from 'chart.js/auto';
+import { useEffect, useState } from 'react'; 
 
 function Dashboard() {
   const navigate = useNavigate();
-  const role = localStorage.getItem('role') || 'preventista';
-  const userName = localStorage.getItem('userName') || 'Usuario';
+  const userString = localStorage.getItem('user'); // Obtén la cadena JSON del usuario
+  const [username, setUserName] = useState(); // Inicializa el estado para el nombre de usuario
+  const [role, setRole] = useState('');
 
+  useEffect(() => {
+    if (userString) {
+      try {
+        const user = JSON.parse(userString);
+        // Asumiendo que tu objeto 'user' tiene una propiedad llamada 'username'
+        setUserName(user.username || '');// Intenta obtener el username, sino usa el default
+        setRole(user.role || '');
+      } catch (error) {
+        console.error("Error al parsear el usuario desde localStorage:", error);
+      }
+    }
+  }, [userString]);
   const handleLogout = () => {
     localStorage.clear();
     navigate('/login');
@@ -35,7 +49,7 @@ function Dashboard() {
         <div className="flex items-center gap-4 mb-8 p-4 bg-white/10 rounded-lg">
           <FaUserCircle className="text-3xl" />
           <div>
-            <h2 className="font-bold">{userName}</h2>
+            <h2 className="font-bold">{username}</h2>
             <p className="text-sm opacity-80">{role}</p>
           </div>
         </div>
@@ -88,7 +102,7 @@ function Dashboard() {
       <div className="flex-1 p-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Bienvenido, {userName}</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Bienvenido, {username}</h1>
         </div>
 
         {/* Estadísticas Rápidas */}

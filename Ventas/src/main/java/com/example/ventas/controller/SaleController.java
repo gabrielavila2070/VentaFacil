@@ -1,9 +1,11 @@
 package com.example.ventas.controller;
 
 import com.example.ventas.dto.*;
+import com.example.ventas.model.ClosedSale;
 import com.example.ventas.model.Sale;
 import com.example.ventas.service.SaleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -54,12 +56,60 @@ public class SaleController {
         }
     }
 
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSale(@PathVariable Long id) {
         saleService.deleteSale(id);
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/close")
+    public ResponseEntity<ClosedSaleResponseDTO> closeSale(@PathVariable Long id) {
+        try {
+            ClosedSale closed = saleService.closeSale(id);
+            // Convertir ClosedSale a DTO
+            ClosedSaleResponseDTO dto = new ClosedSaleResponseDTO(closed);
+            return ResponseEntity.ok(dto);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/closed-sales")
+    public ResponseEntity<List<ClosedSaleResponseDTO>> getClosedSales() {
+        try {
+            List<ClosedSale> closedSales = saleService.getClosedSales();
+            List<ClosedSaleResponseDTO> dtos = closedSales.stream()
+                    .map(ClosedSaleResponseDTO::new)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    @GetMapping("/closed-sales/{id}")
+    public ResponseEntity<ClosedSaleResponseDTO> getClosedSaleDetail(@PathVariable Long id) {
+        try {
+            ClosedSale closedSale = saleService.getClosedSaleById(id);
+            ClosedSaleResponseDTO dto = new ClosedSaleResponseDTO(closedSale);
+            return ResponseEntity.ok(dto);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
+        }
+    }
+    @DeleteMapping("/closed-sales/{id}")
+    public ResponseEntity<Void> deleteClosedSale(@PathVariable Long id) {
+        try {
+            saleService.deleteClosedSale(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
+    }
     @PutMapping("/{id}/products")
     public ResponseEntity<SaleResponseDTO> addProductsToSale(@PathVariable Long id, @RequestBody AddProductsToSaleDTO addProductsToSaleDTO) {
         try {

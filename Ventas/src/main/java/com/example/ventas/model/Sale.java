@@ -34,4 +34,7 @@ public class Sale {
     @NotNull
     private Double total;
 
+    @Enumerated(EnumType.STRING)
+    private SaleStatus saleStatus = SaleStatus.PENDIENTE;
+
 }

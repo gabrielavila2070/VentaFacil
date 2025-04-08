@@ -3,6 +3,7 @@ package com.example.ventas.dto;
 import com.example.ventas.model.Sale;
 import com.example.ventas.model.SaleProduct;
 
+import com.example.ventas.model.SaleStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,6 +18,7 @@ public class SaleResponseDTO {
     private String preventistaName;
     private List<ProductDTO> products;
     private double total;
+    private SaleStatus saleStatus;
 
     public SaleResponseDTO(Sale sale) {
         this.id = sale.getId();
@@ -25,6 +27,7 @@ public class SaleResponseDTO {
         this.products = sale.getSaleProducts().stream()
                 .map(saleProduct -> new ProductDTO(saleProduct.getProduct(), saleProduct.getQuantity()))
                 .collect(Collectors.toList());
+        this.saleStatus = sale.getSaleStatus();
         this.total = sale.getTotal();
     }
 }

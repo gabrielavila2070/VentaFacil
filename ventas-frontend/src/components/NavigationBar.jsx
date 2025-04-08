@@ -6,9 +6,12 @@ import {
   FaBox, 
   FaClipboardList,
   FaUserCog,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaAlipay,
+  FaSalesforce
 } from "react-icons/fa";
 import { getUserFromToken } from "../utils/auth";
+import { FaSackDollar } from "react-icons/fa6";
 
 function NavigationBar() {
   const location = useLocation();
@@ -53,6 +56,9 @@ function NavigationBar() {
           
           {role === "ADMIN" && (
             <NavLink to="/users" icon={<FaUserCog />} label="Usuarios" />
+          )}
+          {(role === "ADMIN" || role === "SUPERVISOR") && (
+            <NavLink to="/sales/closed-sales" icon={<FaSackDollar />} label="Ventas" />
           )}
         </div>
 
