@@ -24,6 +24,9 @@ public class ClientService {
     public Client saveClient(Client client) {
         return clientRepository.save(client);
     }
+    public Long getTotalClients() {
+        return clientRepository.getTotalClients();
+    }
 
     public void deleteClient(Long id) {
         clientRepository.deleteById(id);

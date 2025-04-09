@@ -28,6 +28,9 @@ public class ProductService {
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);
     }
+    public Integer getTotalStock() {
+        return productRepository.getTotalStock();
+    }
 
 
     public Optional<Product> updateProduct(Long id, Product productDetails) {

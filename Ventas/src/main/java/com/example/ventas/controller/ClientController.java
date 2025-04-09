@@ -54,4 +54,9 @@ public class ClientController {
         clientService.deleteClient(id);
         return ResponseEntity.noContent().build();
     }
+    @GetMapping("/count")
+    public ResponseEntity<Long> getTotalClients() {
+        return ResponseEntity.ok(clientService.getTotalClients());
+    }
+
 }

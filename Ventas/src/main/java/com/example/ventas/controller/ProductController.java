@@ -42,4 +42,9 @@ public class ProductController {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
+    @GetMapping("/stock-total")
+    public ResponseEntity<Integer> getTotalStock() {
+        return ResponseEntity.ok(productService.getTotalStock());
+    }
+
 }

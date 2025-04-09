@@ -54,6 +54,19 @@ function OrdersList() {
       console.error('Error al cerrar la venta:', error);
     }
   };
+  const handleDeleteSale = async (saleId) => {
+    if (!window.confirm('¿Estás seguro que deseas eliminar este pedido? Esta acción no se puede deshacer.')) {
+      return;
+    }
+  
+    try {
+      await axios.delete(`/sales/${saleId}`);
+      setOrders((prevOrders) => prevOrders.filter((order) => order.id !== saleId));
+    } catch (error) {
+      console.error('Error al eliminar la venta:', error);
+      setError('No se pudo eliminar la venta.');
+    }
+  };
   
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -119,7 +132,14 @@ function OrdersList() {
                   <FaEdit className="text-sm" />
                   <span>Editar Pedido</span>
                 </button>
-                
+                <button
+  onClick={() => handleDeleteSale(order.id)}
+  className="w-full mt-2 flex items-center justify-center gap-2 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors"
+>
+  🗑️
+  <span>Eliminar Pedido</span>
+</button>
+
                 <button
   disabled={order.saleStatus === 'ENTREGADO'}
   className={`px-3 py-2 rounded-lg text-white transition-colors ${

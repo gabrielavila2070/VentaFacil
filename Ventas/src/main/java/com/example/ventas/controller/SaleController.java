@@ -5,10 +5,12 @@ import com.example.ventas.model.ClosedSale;
 import com.example.ventas.model.Sale;
 import com.example.ventas.service.SaleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -77,18 +79,30 @@ public class SaleController {
     }
 
     @GetMapping("/closed-sales")
-    public ResponseEntity<List<ClosedSaleResponseDTO>> getClosedSales() {
+    public ResponseEntity<List<ClosedSaleResponseDTO>> getClosedSales(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
+    ) {
         try {
-            List<ClosedSale> closedSales = saleService.getClosedSales();
-            List<ClosedSaleResponseDTO> dtos = closedSales.stream()
-                    .map(ClosedSaleResponseDTO::new)
-                    .collect(Collectors.toList());
+            System.out.println("Recibido en controller: start=" + start + ", end=" + end);
+
+            List<ClosedSaleResponseDTO> dtos;
+
+            if (start != null || end != null) {
+                dtos = saleService.getClosedSalesByDate(start, end);
+            } else {
+                dtos = saleService.getClosedSales(); // ← ahora también devuelve DTOs
+            }
+
             return ResponseEntity.ok(dtos);
+
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+
     @GetMapping("/closed-sales/{id}")
     public ResponseEntity<ClosedSaleResponseDTO> getClosedSaleDetail(@PathVariable Long id) {
         try {
@@ -109,6 +123,14 @@ public class SaleController {
             e.printStackTrace();
             return ResponseEntity.badRequest().build();
         }
+    }
+    @GetMapping("/closed-sales/total")
+    public ResponseEntity<Double> getTotalClosedSales() {
+        return ResponseEntity.ok(saleService.getTotalClosedSales());
+    }
+    @GetMapping("/top-products")
+    public ResponseEntity<List<TopProductDTO>> getTopSellingProducts() {
+        return ResponseEntity.ok(saleService.getTopSellingProducts());
     }
     @PutMapping("/{id}/products")
     public ResponseEntity<SaleResponseDTO> addProductsToSale(@PathVariable Long id, @RequestBody AddProductsToSaleDTO addProductsToSaleDTO) {

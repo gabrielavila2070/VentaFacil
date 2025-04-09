@@ -32,6 +32,11 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
         logLevel: 'debug',
+      },
+      '/dashboard': {  
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        logLevel: 'debug',
       }
     }
   },

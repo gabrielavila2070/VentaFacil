@@ -1,9 +1,6 @@
 package com.example.ventas.service;
 
-import com.example.ventas.dto.AddProductsToSaleDTO;
-import com.example.ventas.dto.DeleteProductsFromSaleDTO;
-import com.example.ventas.dto.SaleRequestDTO;
-import com.example.ventas.dto.SaleUpdateRequestDTO;
+import com.example.ventas.dto.*;
 import com.example.ventas.model.*;
 import com.example.ventas.repository.*;
 import jakarta.transaction.Transactional;
@@ -12,10 +9,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.LocalTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,6 +36,7 @@ public class SaleService {
         return saleRepository.findById(id);
     }
 
+    @Transactional
     public Sale saveSale(SaleRequestDTO saleRequest) {
         if (saleRequest.getProducts() == null || saleRequest.getProducts().isEmpty()) {
             throw new RuntimeException("La lista de productos no puede estar vacía");
@@ -52,7 +48,36 @@ public class SaleService {
         User preventista = userRepository.findById(saleRequest.getPreventistaId())
                 .orElseThrow(() -> new RuntimeException("Preventista no encontrado"));
 
-        // Primero guardamos la venta para generar el ID
+        // Obtener IDs de productos a registrar
+        List<Long> productIds = saleRequest.getProducts().stream()
+                .map(ProductDTO::getId)
+                .collect(Collectors.toList());
+
+        List<Product> productsInDb = productRepository.findAllById(productIds);
+
+        // Validación de stock
+        List<String> stockErrors = new ArrayList<>();
+
+        for (ProductDTO dto : saleRequest.getProducts()) {
+            Product product = productsInDb.stream()
+                    .filter(p -> p.getId().equals(dto.getId()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (product == null) {
+                stockErrors.add("Producto no encontrado: ID " + dto.getId());
+            } else if (product.getStock() < dto.getQuantity()) {
+                stockErrors.add("Stock insuficiente para: " + product.getName() +
+                        " (disponibles: " + product.getStock() +
+                        ", solicitados: " + dto.getQuantity() + ")");
+            }
+        }
+
+        if (!stockErrors.isEmpty()) {
+            throw new RuntimeException("No se puede registrar la venta:\n" + String.join("\n", stockErrors));
+        }
+
+        // Crear y guardar la venta
         Sale sale = new Sale();
         sale.setClient(client);
         sale.setPreventista(preventista);
@@ -60,25 +85,36 @@ public class SaleService {
         sale.setSaleStatus(saleRequest.getSaleStatus() != null ?
                 saleRequest.getSaleStatus() :
                 SaleStatus.PENDIENTE);
-        Sale savedSale = saleRepository.save(sale); // ✅ Aquí se genera el ID de la venta
+        Sale savedSale = saleRepository.save(sale);
 
-        // creamos los productos asociados con la venta
-        List<SaleProduct> saleProducts = saleRequest.getProducts().stream()
-                .map(productDTO -> {
-                    Product product = productRepository.findById(productDTO.getId())
-                            .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + productDTO.getId()));
+        // Asociar productos y descontar stock
+        List<SaleProduct> saleProducts = new ArrayList<>();
 
-                    return new SaleProduct(savedSale, product, productDTO.getQuantity());
-                })
-                .collect(Collectors.toList());
+        for (ProductDTO dto : saleRequest.getProducts()) {
+            Product product = productsInDb.stream()
+                    .filter(p -> p.getId().equals(dto.getId()))
+                    .findFirst()
+                    .get(); // seguro existe, ya validado
+
+            saleProducts.add(new SaleProduct(savedSale, product, dto.getQuantity()));
+
+            product.setStock(product.getStock() - dto.getQuantity());
+        }
 
         saleProductRepository.saveAll(saleProducts);
+        productRepository.saveAll(productsInDb);
 
         return savedSale;
     }
 
-    public List<ClosedSale> getClosedSales() {
-        return closedSaleRepository.findAll();}
+
+    public List<ClosedSaleResponseDTO> getClosedSales() {
+        List<ClosedSale> sales = closedSaleRepository.findAllByOrderByDateClosedDesc();
+        return sales.stream()
+                .map(ClosedSaleResponseDTO::new)
+                .collect(Collectors.toList());
+    }
+
     public ClosedSale getClosedSaleById(Long id) {
         return closedSaleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Venta cerrada no encontrada con ID: " + id));
@@ -171,9 +207,43 @@ public class SaleService {
 
         return savedClosedSale;
     }
+    @Transactional
     public void deleteSale(Long id) {
+        Sale sale = saleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + id));
+
+        // Restaurar stock de cada producto
+        List<SaleProduct> saleProducts = saleProductRepository.findBySaleId(sale.getId());
+        for (SaleProduct sp : saleProducts) {
+            Product product = sp.getProduct();
+            product.setStock(product.getStock() + sp.getQuantity());
+            productRepository.save(product);
+        }
+
+        // Primero eliminar los productos de la venta (por si hay constraint de FK)
+        saleProductRepository.deleteAll(saleProducts);
+
+        // Luego eliminar la venta
         saleRepository.deleteById(id);
     }
+
+    public Double getTotalClosedSales() {
+        return closedSaleRepository.getTotalClosedSales();
+    }
+    public List<TopProductDTO> getTopSellingProducts() {
+        return closedSaleRepository.findTopSellingProducts();
+    }
+
+    public List<ClosedSaleResponseDTO> getClosedSalesByDate(LocalDate startDate, LocalDate endDate) {
+        LocalDateTime startDateTime = (startDate != null) ? startDate.atStartOfDay() : null;
+        LocalDateTime endDateTime = (endDate != null) ? endDate.atTime(LocalTime.MAX) : null;
+
+        List<ClosedSale> sales = closedSaleRepository.findByDateRange(startDateTime, endDateTime);
+        return sales.stream()
+                .map(ClosedSaleResponseDTO::new)
+                .collect(Collectors.toList());
+    }
+
 
     @Transactional
     public Optional<Sale> addProductsToSale(Long id, AddProductsToSaleDTO addProductsToSaleDTO) {
@@ -196,6 +266,8 @@ public class SaleService {
                     throw new IllegalArgumentException("La cantidad solicitada para '" + product.getName() +
                             "' supera el stock disponible (" + product.getStock() + ").");
                 }
+                product.setStock(product.getStock() - quantityToAdd);
+                productRepository.save(product);
 
                 SaleProductId saleProductId = new SaleProductId(sale.getId(), product.getId());
                 Optional<SaleProduct> existingSaleProduct = saleProductRepository.findById(saleProductId);
@@ -238,6 +310,7 @@ public class SaleService {
 
                 if (existingSaleProduct.isPresent()) {
                     SaleProduct sp = existingSaleProduct.get();
+                    Product product = sp.getProduct();
                     if (sp.getQuantity() > quantityToRemove) {
                         sp.setQuantity(sp.getQuantity() - quantityToRemove); // Resta solo la cantidad indicada
                         saleProductRepository.save(sp);
@@ -245,6 +318,8 @@ public class SaleService {
                         saleProductRepository.delete(sp); // Si la cantidad es igual o menor, eliminar el producto
                         sale.getSaleProducts().remove(sp);
                     }
+                    product.setStock(product.getStock() + quantityToRemove);
+                    productRepository.save(product);
                 }
             });
 
